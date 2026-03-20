@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# Create crontab job with * * * * * (every minute) for this script
+
+# Config
+IP="8.8.8.8"
+BOT_TOKEN="<YOUR_TOKEN_HERE>"
+CHAT_ID="<TELEGRAM_CHAT_ID>"
+
+STATE_FILE="/tmp/ping_state"
+TIME_FILE="/tmp/ping_down_time"
+
+# Ping
+ping -c 3 -W 2 $IP > /dev/null 2>&1
+RESULT=$?
+
+# === IF DOWN ===
+if [ $RESULT -ne 0 ]; then
+    # If state not already DOWN
+    if [ ! -f "$STATE_FILE" ]; then
+        echo "down" > "$STATE_FILE"
+
+        # Save timestamp
+        date +%s > "$TIME_FILE"
+
+        MESSAGE="📶 Network is offline"
+
+        curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+            -d chat_id="$CHAT_ID" \
+            -d text="$MESSAGE" > /dev/null
+    fi
+
+# === IF UP ===
+else
+    # If previously DOWN
+    if [ -f "$STATE_FILE" ]; then
+        DOWN_TIME=$(cat "$TIME_FILE")
+        NOW=$(date +%s)
+
+        # Calculate duration in minutes
+        DURATION=$(( (NOW - DOWN_TIME) / 60 ))
+
+        MESSAGE="✅ Connection restored. Downtime: ${DURATION} min"
+
+        curl -s -X POST "https://api.telegram.org/bot$BOT_TOKEN/sendMessage" \
+            -d chat_id="$CHAT_ID" \
+            -d text="$MESSAGE" > /dev/null
+
+        # Cleanup
+        rm -f "$STATE_FILE" "$TIME_FILE"
+    fi
+fi
