@@ -1,2 +1,2 @@
 # Wadbox
-Wadbox — colection of basic but usefull scripts that makes your life easier
+Wadbox — collection of basic but usefull scripts those make your life easier
